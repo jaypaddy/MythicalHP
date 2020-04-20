@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -25,6 +24,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
 	router.HandleFunc("/fail", GetFailEndpoint).Methods("GET")
+	fmt.Printf("%s - Server Start\n", time.Now().String())
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 
@@ -37,7 +37,6 @@ func LogIt(pipeline string, req *http.Request) {
 
 //GetRootEndpoint gets a Root Endpoint
 func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
-
 	var thisenv MyEnv
 	thisenv.HostName = "HOST"
 	thisenv.NodeName = "NODE"
@@ -47,9 +46,11 @@ func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytesRepresentation)
+	fmt.Printf("%s - Healthprobe Success\n", time.Now().String())
 }
 
 //GetFailEndpoint gets a Root Endpoint
 func GetFailEndpoint(w http.ResponseWriter, req *http.Request) {
+	fmt.Printf("%s - Healthprobe Failed\n", time.Now().String())
 	w.WriteHeader(http.StatusNotFound)
 }
