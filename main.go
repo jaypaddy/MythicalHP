@@ -24,11 +24,12 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
 	router.HandleFunc("/fail", GetFailEndpoint).Methods("GET")
-	fmt.Printf("%s - Server Start\n", time.Now().String())
+	
 	hostName, err := os.Hostname()
 	if err != nil {
 		hostName = "Unknown"
 	}
+	fmt.Printf("%s - %s Server Start\n", time.Now().String(), hostName)
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 
