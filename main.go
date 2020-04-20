@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"os"
 )
 
 // MyEnv Variables
@@ -24,6 +25,10 @@ func main() {
 	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
 	router.HandleFunc("/fail", GetFailEndpoint).Methods("GET")
 	fmt.Printf("%s - Server Start\n", time.Now().String())
+	hostName, err := os.Hostname()
+	if err != nil {
+		hostName = "Unknown"
+	}
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 
