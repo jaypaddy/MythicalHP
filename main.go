@@ -31,6 +31,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
 	router.HandleFunc("/fail", GetFailEndpoint).Methods("GET")
+	router.HandleFunc("/healthprobe", GetHPEndpoint).Methods("GET")
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 
@@ -41,11 +42,18 @@ func LogIt(pipeline string, req *http.Request) {
 	fmt.Printf("%s,%s,%s,%s\n", time.Now(), pipeline, ua, ip)
 }
 
+//GetHPEndpoint gets a Root Endpoint
+func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Printf("%s - %s:Healthprobe Success\n", time.Now().String(), hostName)
+}
+
 //GetRootEndpoint gets a Root Endpoint
 func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Printf("%s - %s:Healthprobe Success\n", time.Now().String(), hostName)
+	fmt.Printf("%s - %s:ROOT Success\n", time.Now().String(), hostName)
 }
 
 //GetFailEndpoint gets a Root Endpoint
