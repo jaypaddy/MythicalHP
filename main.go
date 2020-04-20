@@ -22,16 +22,15 @@ const VERSION = "v1"
 var hostName string
 
 func main() {
-
-	router := mux.NewRouter()
-	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
-	router.HandleFunc("/fail", GetFailEndpoint).Methods("GET")
-	
-	hostName, err := os.Hostname()
+	var err
+	hostName, err = os.Hostname()
 	if err != nil {
 		hostName = "Unknown"
 	}
 	fmt.Printf("%s - %s Server Start\n", time.Now().String(), hostName)
+	router := mux.NewRouter()
+	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
+	router.HandleFunc("/fail", GetFailEndpoint).Methods("GET")
 	log.Fatal(http.ListenAndServe(":80", router))
 }
 
