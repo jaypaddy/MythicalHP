@@ -22,7 +22,7 @@ const VERSION = "v1"
 var hostName string
 
 func main() {
-	var err
+	var err error
 	hostName, err = os.Hostname()
 	if err != nil {
 		hostName = "Unknown"
