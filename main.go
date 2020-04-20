@@ -37,12 +37,6 @@ func LogIt(pipeline string, req *http.Request) {
 
 //GetRootEndpoint gets a Root Endpoint
 func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
-	var thisenv MyEnv
-	thisenv.HostName = "HOST"
-	thisenv.NodeName = "NODE"
-	thisenv.PodIP = "IP"
-	bytesRepresentation, _ := json.Marshal(thisenv)
-	fmt.Println(string(bytesRepresentation))
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(bytesRepresentation)
