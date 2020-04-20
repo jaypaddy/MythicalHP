@@ -19,6 +19,8 @@ type MyEnv struct {
 //VERSION of the app
 const VERSION = "v1"
 
+var hostName string
+
 func main() {
 
 	router := mux.NewRouter()
@@ -44,11 +46,11 @@ func LogIt(pipeline string, req *http.Request) {
 func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Printf("%s - Healthprobe Success\n", time.Now().String())
+	fmt.Printf("%s - %s:Healthprobe Success\n", time.Now().String(), hostName)
 }
 
 //GetFailEndpoint gets a Root Endpoint
 func GetFailEndpoint(w http.ResponseWriter, req *http.Request) {
-	fmt.Printf("%s - Healthprobe Failed\n", time.Now().String())
+	fmt.Printf("%s - %s:Healthprobe Failed\n", time.Now().String(), hostName)
 	w.WriteHeader(http.StatusNotFound)
 }
