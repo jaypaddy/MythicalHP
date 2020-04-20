@@ -38,7 +38,6 @@ func LogIt(pipeline string, req *http.Request) {
 func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(bytesRepresentation)
 	fmt.Printf("%s - Healthprobe Success\n", time.Now().String())
 }
 
