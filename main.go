@@ -148,9 +148,10 @@ func GetHeartBeat() int {
 		retStatus = 404
 	} else {
 		retStatus = res.StatusCode
+		res.Close = true
+		res.Body.Close()
 	}
-	res.Close = true
-	res.Body.Close()
+
 
 	//fmt.Printf("%s - %s:GetHeartBeat  %d\n", time.Now().String(), hostName, res.StatusCode)
 
