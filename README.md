@@ -20,5 +20,7 @@ Call Sequence between Primary and Secondary
 * [SECONDARY] sudo go run . -role=secondary -tcpprobe=primarymq -agentport=80
 
 role = this is the role of the server where the agent is running. Assumption is that the agent will run on the same server as the primary service i.e. the workload
+
 tcpprobe = this will be tcp service that needs to be assessed for health
+
 agentport = the port at which the agent will run. this should match with the port used on the Load Balancer Healthprobe. On the loadbalancer it will be specified as http://<server>:<agentport>/healthprobe
