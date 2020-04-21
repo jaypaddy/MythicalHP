@@ -92,7 +92,7 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 			rCode = 200
 		}
 	} else { //Not Primary
-		fmt.Printf("Executing Secondary\n")
+
 		//Check Primary MQ Status
 		if tcpStatus == false {
 			//Failover to Secondary, return 200
