@@ -5,3 +5,14 @@ This is a simple introduction to enabling Primary & Secondary with Azure Standar
 ![Image description](./MythicalHP.png)
 
 
+## Steps
+* Ubuntu VMs
+* Deploy Standard Load Balancer with Backend Pool
+* Install https://github.com/golang/go/wiki/Ubuntu
+* go get -u github.com/gorilla/mux
+* git clone https://github.com/jaypaddy/MythicalHP.git
+* cd MythicalHP
+* [PRIMARY] sudo go run . 200 http://localhost/healthprobe
+* [SECONDARY] sudo go run . 400 http://<PRIMARYIP>/healthprobe
+
+
