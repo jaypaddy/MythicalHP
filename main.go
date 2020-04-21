@@ -111,6 +111,7 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "{%v: %v}\n", hostName, http.StatusOK)
 	fmt.Printf("%s - %s:ROOT Success\n", time.Now().String(), hostName)
 }
 
