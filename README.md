@@ -24,3 +24,8 @@ role = this is the role of the server where the agent is running. Assumption is 
 tcpprobe = this will be tcp service that needs to be assessed for health
 
 agentport = the port at which the agent will run. this should match with the port used on the Load Balancer Healthprobe. On the loadbalancer it will be specified as http://<server>:<agentport>/healthprobe
+
+
+
+Example Output
+![Image description](./ExampleOutput.png)
