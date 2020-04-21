@@ -39,12 +39,9 @@ func init() {
 	//flag.StringVar(&httpprobe, "httpprobe", "http://localhost:8080/healthprobe", "specify http endpoint for primary agent: http://x.x.x.x:port/healthprobe")
 	flag.StringVar(&agentport, "agentport", "8080", "specify the port for agent to run")
 	flag.Parse()
-
 	//Convert to lowercase....
 	role = strings.ToLower(role)
-	agentport = fmt.Sprintf(":%s",agentport)
-
-	fmt.Printf("role=%s tcpprobe=%s \nagentport=%s\n", role, tcpprobe, agentport)
+	agentport = fmt.Sprintf(":%s", agentport)
 
 }
 
@@ -56,7 +53,7 @@ func main() {
 		hostName = "UnknownHost"
 	}
 
-	fmt.Printf("%s - %s Starting Server...\n", time.Now().String(), hostName)
+	fmt.Printf("%s - %s Starting %s Server...\n", time.Now().String(), role, hostName)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
@@ -84,7 +81,6 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 	var rCode int
 
 	tcpStatus = GetHeartBeatTCP(tcpprobe, 10)
-
 	if role == "primary" {
 		//This block is executed on the Primary Server
 		//Check MQ
@@ -96,8 +92,8 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 			rCode = 200
 		}
 	} else { //Not Primary
+		fmt.Printf("Executing Secondary\n")
 		//Check Primary MQ Status
-		tcpStatus = GetHeartBeatTCP(tcpprobe, 10)
 		if tcpStatus == false {
 			//Failover to Secondary, return 200
 			fmt.Printf("%s - Failingover to %s\n", time.Now().String(), hostName)
@@ -117,7 +113,7 @@ func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "{%v: %v}\n", hostName, http.StatusOK)
-	fmt.Printf("%s - %s:ROOT Success\n", time.Now().String(), hostName)
+	fmt.Printf("%s - %s:%s Success\n", time.Now().String(), role, hostName)
 }
 
 //GetHeartBeatHTTP gets a Root Endpoint
@@ -141,8 +137,12 @@ func GetHeartBeatHTTP() int {
 //GetHeartBeatTCP gets a Root Endpoint
 func GetHeartBeatTCP(host string, timeoutSecs int) bool {
 	conn, err := net.DialTimeout("tcp", host, time.Duration(timeoutSecs)*time.Second)
-	defer conn.Close()
+	if err != nil {
+		fmt.Printf("%s - %s:tcpprobe conn error: %s\n", time.Now().String(), hostName, host)
+		return false
+	}
 
+	defer conn.Close()
 	if err, ok := err.(*net.OpError); ok && err.Timeout() {
 		fmt.Printf("%s - %s:TCP Timeout: %s\n", time.Now().String(), hostName, host)
 		fmt.Printf("Timeout error: %s\n", err)
