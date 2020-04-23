@@ -39,4 +39,3 @@ sudo systemctl start mythicalagent
 sudo journalctl -f -u mythicalagent
 
 
-PS> Get-LogicAppTemplate -Token (az account get-access-token | ConvertFrom-Json).accessToken -LogicApp CheckTravelTime -ResourceGroup CNE_DEV_RG -SubscriptionId 881ac365-d417-4791-b2a9-48789acbb88d -Verbose | Out-File template.json
