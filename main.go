@@ -6,12 +6,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
 	"flag"
 
-	"github.com/gorilla/mux"
 	"strings"
+
+	"github.com/gorilla/mux"
+	"syscall"
 )
 
 // MyEnv Variables
@@ -42,7 +45,6 @@ func init() {
 	//Convert to lowercase....
 	role = strings.ToLower(role)
 	agentport = fmt.Sprintf(":%s", agentport)
-
 }
 
 func main() {
@@ -52,13 +54,36 @@ func main() {
 	if err != nil {
 		hostName = "UnknownHost"
 	}
+	// setup signal catching
+	sigs := make(chan os.Signal, 1)
+	// catch SIGQUIT
 
-	fmt.Printf("%s - %s Starting %s Server...\n", time.Now().String(), role, hostName)
+	signal.Notify(sigs,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	// method invoked upon seeing signal
+	go func() {
+		s := <-sigs
+		log.Printf("%s - %s Received signal %s. Shutting down Server %s...\n", time.Now().String(), role, s, hostName)
+		AppCleanup()
+		os.Exit(1)
+	}()
+
+	log.Printf("%s - %s Starting %s Server...\n", time.Now().String(), role, hostName)
+	log.Printf("tcpprobe:%s agentport:%s\n", tcpprobe, agentport)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", GetRootEndpoint).Methods("GET")
 	router.HandleFunc("/healthprobe", GetHPEndpoint).Methods("GET")
 	log.Fatal(http.ListenAndServe(agentport, router))
+}
+
+//AppCleanup on Kill
+func AppCleanup() {
+	log.Printf("%s - %s  %s Server is Exiting...\n", time.Now().String(), role, hostName)
 }
 
 //GetHPEndpoint gets a HP Endpoint
@@ -96,16 +121,15 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 		//Check Primary MQ Status
 		if tcpStatus == false {
 			//Failover to Secondary, return 200
-			fmt.Printf("%s - Failingover to %s\n", time.Now().String(), hostName)
+			log.Printf("%s - Failingover to %s\n", time.Now().String(), hostName)
 			rCode = 200
 		} else {
 			//Primary is healthy , fake Secondary is not healthy
 			rCode = 404
 		}
 	}
-	fmt.Printf("%s - %s:HeartBeat %d\n", time.Now().String(), hostName, rCode)
+	log.Printf("%s - %s:HeartBeat %d\n", time.Now().String(), hostName, rCode)
 	w.WriteHeader(rCode)
-
 }
 
 //GetRootEndpoint gets a Root Endpoint
@@ -113,7 +137,7 @@ func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "{%v: %v}\n", hostName, http.StatusOK)
-	fmt.Printf("%s - %s:%s Success\n", time.Now().String(), role, hostName)
+	log.Printf("%s - %s:%s Success\n", time.Now().String(), role, hostName)
 }
 
 //GetHeartBeatHTTP gets a Root Endpoint
@@ -138,19 +162,19 @@ func GetHeartBeatHTTP() int {
 func GetHeartBeatTCP(host string, timeoutSecs int) bool {
 	conn, err := net.DialTimeout("tcp", host, time.Duration(timeoutSecs)*time.Second)
 	if err != nil {
-		fmt.Printf("%s - %s:tcpprobe conn error: %s\n", time.Now().String(), hostName, host)
+		log.Printf("%s - %s:tcpprobe conn error: %s\n", time.Now().String(), hostName, host)
 		return false
 	}
 
 	defer conn.Close()
 	if err, ok := err.(*net.OpError); ok && err.Timeout() {
-		fmt.Printf("%s - %s:TCP Timeout: %s\n", time.Now().String(), hostName, host)
-		fmt.Printf("Timeout error: %s\n", err)
+		log.Printf("%s - %s:TCP Timeout: %s\n", time.Now().String(), hostName, host)
+		log.Printf("Timeout error: %s\n", err)
 		return false
 	}
 	if err != nil {
 		// Log or report the error here
-		fmt.Printf("Error: %s\n", err)
+		log.Printf("Error: %s\n", err)
 		return false
 	}
 	return true

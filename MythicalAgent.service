@@ -1,0 +1,28 @@
+[Unit]
+Description=MythicalAgent Service
+ConditionPathExists=/MythicalHP
+After=network.target
+ 
+[Service]
+Type=simple
+User=mythicalagent
+Group=mythicalagent
+LimitNOFILE=1024
+
+Restart=always
+RestartSec=10
+
+WorkingDirectory=/MythicalHP
+ExecStart=/MythicalHP/mythicalagent -role primary -tcpprobe 127.0.0.1:8080 -agentport 8080
+
+# make sure log directory exists and owned by syslog
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /var/log/mythicalagent
+ExecStartPre=/bin/chown syslog:adm /var/log/mythicalagent
+ExecStartPre=/bin/chmod 755 /var/log/mythicalagent
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=mythicalagent
+ 
+[Install]
+WantedBy=multi-user.target
