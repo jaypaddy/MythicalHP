@@ -17,6 +17,16 @@ import (
 	"syscall"
 )
 
+type stop struct {
+	error
+}
+
+//HTTPhandler for Retry
+type HTTPhandler func() error
+
+//TCPhandler for Retry
+type TCPhandler func() error
+
 // MyEnv Variables
 type MyEnv struct {
 	HostName string `json:"podname,omitempty"`
@@ -26,6 +36,9 @@ type MyEnv struct {
 
 //VERSION of the app
 const VERSION = "v1"
+const TCP_DIAL_TIMEOUT_SECS = 10
+const NETWORK_RETRIES = 3
+const NETWORK_RETRY_BACKOFF_SECS = 2
 
 var hostName string
 var heartbeatURL string
@@ -67,12 +80,12 @@ func main() {
 	// method invoked upon seeing signal
 	go func() {
 		s := <-sigs
-		log.Printf("%s - %s Received signal %s. Shutting down Server %s...\n", time.Now().String(), role, s, hostName)
+		log.Printf("%s - %s Received signal %s. Shutting down Server %s...\n", GetTimeAsString(), role, s, hostName)
 		AppCleanup()
 		os.Exit(1)
 	}()
 
-	log.Printf("%s - %s Starting %s Server...\n", time.Now().String(), role, hostName)
+	log.Printf("%s - %s Starting %s Server...\n", GetTimeAsString(), role, hostName)
 	log.Printf("tcpprobe:%s agentport:%s\n", tcpprobe, agentport)
 
 	router := mux.NewRouter()
@@ -83,7 +96,7 @@ func main() {
 
 //AppCleanup on Kill
 func AppCleanup() {
-	log.Printf("%s - %s  %s Server is Exiting...\n", time.Now().String(), role, hostName)
+	log.Printf("%s - %s  %s Server is Exiting...\n", GetTimeAsString(), role, hostName)
 }
 
 //GetHPEndpoint gets a HP Endpoint
@@ -105,7 +118,12 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 	var tcpStatus bool
 	var rCode int
 
-	tcpStatus = GetHeartBeatTCP(tcpprobe, 10)
+	err := Retry(NETWORK_RETRIES, time.Duration(time.Second*NETWORK_RETRY_BACKOFF_SECS), GetHeartBeatTCP)
+	if err != nil {
+		tcpStatus = false
+	} else {
+		tcpStatus = true
+	}
 	if role == "primary" {
 		//This block is executed on the Primary Server
 		//Check MQ
@@ -121,14 +139,14 @@ func GetHPEndpoint(w http.ResponseWriter, req *http.Request) {
 		//Check Primary MQ Status
 		if tcpStatus == false {
 			//Failover to Secondary, return 200
-			log.Printf("%s - Failingover to %s\n", time.Now().String(), hostName)
+			log.Printf("%s - Secondary is Active:%s\n", GetTimeAsString(), hostName)
 			rCode = 200
 		} else {
 			//Primary is healthy , fake Secondary is not healthy
 			rCode = 404
 		}
 	}
-	log.Printf("%s - %s:HeartBeat %d\n", time.Now().String(), hostName, rCode)
+	log.Printf("%s - HeartBeat:%s %d\n", GetTimeAsString(), hostName, rCode)
 	w.WriteHeader(rCode)
 }
 
@@ -137,45 +155,58 @@ func GetRootEndpoint(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprintf(w, "{%v: %v}\n", hostName, http.StatusOK)
-	log.Printf("%s - %s:%s Success\n", time.Now().String(), role, hostName)
+	log.Printf("%s - %s:%s Success\n", GetTimeAsString(), role, hostName)
 }
 
-//GetHeartBeatHTTP gets a Root Endpoint
-func GetHeartBeatHTTP() int {
-	var retStatus int
-
+//GetHeartBeatHTTP connects to tcpprobe and enquires status
+func GetHeartBeatHTTP() error {
 	res, err := http.Get(heartbeatURL)
 	if err != nil {
-		retStatus = 404
-	} else {
-		retStatus = res.StatusCode
-		res.Close = true
-		res.Body.Close()
+		return err
 	}
-
-	//fmt.Printf("%s - %s:GetHeartBeat  %d\n", time.Now().String(), hostName, res.StatusCode)
-
-	return retStatus
+	res.Close = true
+	res.Body.Close()
+	return nil
 }
 
 //GetHeartBeatTCP gets a Root Endpoint
-func GetHeartBeatTCP(host string, timeoutSecs int) bool {
-	conn, err := net.DialTimeout("tcp", host, time.Duration(timeoutSecs)*time.Second)
+func GetHeartBeatTCP() error {
+	conn, err := net.DialTimeout("tcp", tcpprobe, time.Duration(TCP_DIAL_TIMEOUT_SECS)*time.Second)
 	if err != nil {
-		log.Printf("%s - %s:tcpprobe conn error: %s\n", time.Now().String(), hostName, host)
-		return false
+		log.Printf("%s - %s:tcpprobe conn error: %s\n", GetTimeAsString(), hostName, tcpprobe)
+		return err
 	}
 
 	defer conn.Close()
 	if err, ok := err.(*net.OpError); ok && err.Timeout() {
-		log.Printf("%s - %s:TCP Timeout: %s\n", time.Now().String(), hostName, host)
+		log.Printf("%s - %s:TCP Timeout: %s\n", GetTimeAsString(), hostName, tcpprobe)
 		log.Printf("Timeout error: %s\n", err)
-		return false
+		return err
 	}
-	if err != nil {
-		// Log or report the error here
-		log.Printf("Error: %s\n", err)
-		return false
+
+	return nil
+}
+
+//Retry retries the specific function until Stop or attempts
+func Retry(attempts int, sleep time.Duration, fn HTTPhandler) error {
+	log.Printf("Attempt:%d\n", attempts)
+	if err := fn(); err != nil {
+		if s, ok := err.(stop); ok {
+			// Return the original error for later checking
+			return s.error
+		}
+		if attempts--; attempts > 0 {
+			time.Sleep(sleep)
+
+			return Retry(attempts, 2*sleep, fn)
+		}
+		return err
 	}
-	return true
+	return nil
+}
+
+//GetTimeAsString for logging
+func GetTimeAsString() string {
+	currentTime := time.Now()
+	return currentTime.Format("2020-01-01 01:01:01")
 }

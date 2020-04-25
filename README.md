@@ -33,15 +33,15 @@ Example Output
 ### [Adapted from https://fabianlee.org/2017/05/21/golang-running-a-go-binary-as-a-systemd-service-on-ubuntu-16-04/]
 sudo useradd mythicalagent -s /sbin/nologin -M
 
-sudo cp mythicalagent.service /lib/systemd/system/mythicalagent.service
+sudo cp MythicalAgent.service /lib/systemd/system/mythicalagent.service
 
 sudo chmod 755 /lib/systemd/system/mythicalagent.service
 
-sudo systemctl enable ythicalagent.service
+sudo systemctl enable mythicalagent.service
 
 sudo systemctl start mythicalagent
 
-sudo journalctl -f -u mythicalagent
+sudo journalctl -f -u MythicalAgent
 
 
 
